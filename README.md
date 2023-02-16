@@ -11,6 +11,7 @@ Could be worth looking at this link down the road: https://github.com/enhuiz/val
 |2/14|7:00PM - 8:15PM = 1.25hrs|Read paper, wrote notes and README
 |2/14|9:00PM - 10:15PM = 1.25hrs|Wrote script to download datasets
 |2/14|10:15PM - 1:00AM = 2.75hrs|Learned about DNN-HMM models, and began writing one for phoneme conversion
+|2/15|8:30PM - 10:30PM = 2.00hrs|Learned more about HMM models, began writing one by scratch. Able to train. Now I just need to set it up for ASR.
 |**Total**|**5.25**|
 
 Architecture:
