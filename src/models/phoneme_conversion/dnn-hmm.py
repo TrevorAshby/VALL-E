@@ -15,6 +15,8 @@ import pickle
 # new
 import os
 from scipy.io import wavfile
+import librosa
+import matplotlib.pyplot as plt
 
 # neural network related
 from sklearn.neural_network import MLPClassifier
@@ -32,6 +34,8 @@ def normalize_numpy_2d(matrix):
     norm = np.linalg.norm(matrix)
     matrix = matrix/norm
     return matrix
+
+from scipy.stats import norm
 
 def elog(x):
     res = np.log(x, where=(x!=0))
@@ -61,17 +65,20 @@ def get_data_dict2(datafolder): # ='../../data/archive/recordings_train & _test'
         key = file.split('.')[0]
         mat = wavfile.read(datafolder + '/{}'.format(file))[1].astype(np.float16)
 
-        standardized_len = 8000
+        standardized_len = 7999
         if len(mat) < standardized_len:
             mat = np.append(mat, np.array([0.0 for i in range(standardized_len - len(mat))]))
         else:
             mat = mat[0:standardized_len]
 
-        miniclip_len = 80
-        data_dict[key] = normalize_numpy_2d(mat.reshape(miniclip_len,int(standardized_len/miniclip_len)))
+        #miniclip_len = 80
+        #data_dict[key] = normalize_numpy_2d(mat.reshape(miniclip_len,int(standardized_len/miniclip_len)))
+        
+        librosa_mfcc_feature = librosa.feature.mfcc(y=mat.astype(np.float32), sr=8000, n_mfcc=39, n_fft=1024, win_length=int(0.025*8000), hop_length=int(0.01*8000))
+        data_dict[key] = librosa_mfcc_feature
 
-        if xx % 25 == 0:
-            print("{}/{} files read and normalized.".format(xx,len(file_names)))
+        if xx % 700 == 0:
+            print("{}/{} files read and converted to mfcc.".format(xx,len(file_names)))
     return data_dict
 
 
@@ -89,8 +96,8 @@ def exp_normalize(x, axis=None, keepdims=False):
 def compute_ll(data, mu, r):
     # Compute log-likelihood of a single n-dimensional data point, given a single
     # mean and variance
-    print(r.shape)
-    print(data.shape)
+    #print(r.shape)
+    #print(data.shape)
     ll = (- 0.5*elog(r) - np.divide(np.square(data - mu), 2*r) -0.5*np.log(2*np.pi)).sum()
     return ll
 
@@ -182,6 +189,13 @@ class SingleGauss():
         # Function for calculating log likelihood of single modal Gaussian
         lls = [compute_ll(frame, self.mu, self.r) for frame in data_mat.tolist()]
         ll = np.sum(np.array(lls))
+        return ll
+    
+    def loglike_plot(self, data_mat):
+        # Function for calculating log likelihood of single modal Gaussian
+        lls = [compute_ll(frame, self.mu, self.r) for frame in data_mat.tolist()]
+        #ll = np.sum(np.array(lls))
+        ll = np.array(lls)
         return ll
 
 
@@ -305,8 +319,13 @@ class HMMMLP():
 
 
     def computeLogPrior(self, S):
+        print('S: ', S)
+        print(len(S))
         states, counts = np.unique(S, return_counts=True)
         p = np.zeros(len(states))
+        print('p: ', p)
+        print('states: ', states)
+        print('counts')
         for s,c in zip(states,counts):
             p[s] = c
         p /= np.sum(p)
@@ -447,9 +466,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('train', type=str, help='training data') #../../data/archive/recordings_train/
     parser.add_argument('test', type=str, help='test data') #../../data/archive/recordings_train/
-    parser.add_argument('--niter', type=int, default=10)
-    parser.add_argument('--nstate', type=int, default=5) # modified from 5
-    parser.add_argument('--nepoch', type=int, default=20) # modified from 10
+    parser.add_argument('--niter', type=int, default=2)
+    parser.add_argument('--nstate', type=int, default=5) # modified from 5, read that 3 states is best
+    parser.add_argument('--nepoch', type=int, default=10) # modified from 10
     parser.add_argument('--lr', type=int, default=0.01)
     parser.add_argument('--mode', type=str, default='mlp',
                         choices=['hmm', 'mlp'],
@@ -490,25 +509,57 @@ if __name__ == '__main__':
     # for debug
     if args.debug:
         test_data = {key:test_data[key] for key in list(test_data.keys())[:200]}
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    dig_colors = ["r","g","b","yellow","k","c","m","orange","silver","pink"]
+
+    print("---- Generating GMM Plots for each Digit ----")
+    for digit in digits:
+        sg_model = SingleGauss()
+        #print(digit)
+        data = np.vstack([train_data[id] for id in train_data.keys() if digit in id.split('_')[0]]) # changed from [1]
+        #print(data.shape)
+        
+        sg_model.train(data)
+
+        fig2 = plt.figure()
+        ax2 = fig2.add_subplot(111)
+
+        x = np.linspace(-20, 20, 100).reshape(100,1)
+        logprob = sg_model.loglike_plot(x)
+        #print(logprob)
+        pdf = np.exp(logprob)
+        #print np.max(pdf) -> 19.8409464401 !?
+        #print('x: ', x)
+        #print('pdf: ', pdf)
+        ax.plot(x, pdf, '-', color=dig_colors[int(digit)], label=digit)
+        ax2.plot(x, pdf, '-', color=dig_colors[int(digit)], label=digit)
+        ax2.legend(loc="upper left")
+        fig2.savefig('./plots/{}.png'.format(digit))
+    ax.legend(loc="upper left")
+    fig.savefig('./plots/All_GMM.png')
 
     # Single Gaussian
     sg_model = sg_train(digits, train_data)
 
-    if args.mode == 'hmm':
-        try:
-            model = pickle.load(open('hmm.pickle','rb'))
-        except:
-            model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
-            pickle.dump(model, open('hmm.pickle','wb'))
-    elif args.mode == 'mlp':
-        try:
-            hmm_model = pickle.load(open('hmm.pickle','rb'))
-        except:
-            hmm_model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
-            pickle.dump(hmm_model, open('hmm.pickle','wb'))
+    model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
+    #if args.mode == 'hmm':
+    #    try:
+    #        model = pickle.load(open('hmm.pickle','rb'))
+    #    except:
+    #        model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
+    #        pickle.dump(model, open('hmm.pickle','wb'))
+    #elif args.mode == 'mlp':
+    #    try:
+    #        hmm_model = pickle.load(open('hmm.pickle','rb'))
+    #    except:
+    #        hmm_model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
+    #        pickle.dump(hmm_model, open('hmm.pickle','wb'))
 	#TODO: Modify MLP training function call with appropriate arguments here
-        model = mlp_train(digits, train_data, hmm_model, uniq_state_dict, nepoch=args.nepoch, lr=args.lr, 
-            nunits=(512,512))
+    #    model = mlp_train(digits, train_data, hmm_model, uniq_state_dict, nepoch=args.nepoch, lr=args.lr, 
+    #        nunits=(512,512))
             #nunits=(256, 256))
 
     # test
@@ -517,7 +568,8 @@ if __name__ == '__main__':
     for key in test_data.keys():
         lls = [] 
         for digit in digits:
-            ll = model[digit].loglike(test_data[key], digit)
+            #ll = model[digit].loglike(test_data[key], digit) # used when doing dnn-hmm
+            ll = model[digit].loglike(test_data[key])
             lls.append(ll)
         predict = digits[np.argmax(np.array(lls))]
         log_like = np.max(np.array(lls))
