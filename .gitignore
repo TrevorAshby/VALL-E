@@ -1,6 +1,9 @@
 __pycache__
 .DS_STORE
+.ipynb_checkpoints
 /src/data/small/
 /src/data/LibriSpeech/
+/src/data/archive/
 /src/data/small.tar
 /src/data/train-clean-100.tar.gz
+/src/data/archive.zip

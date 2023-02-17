@@ -6,13 +6,15 @@ Paper link: https://arxiv.org/pdf/2301.02111.pdf
 
 Could be worth looking at this link down the road: https://github.com/enhuiz/vall-e
 
-|Day|Hours|Accomplished|
-|---|---|---|
-|2/14|7:00PM - 8:15PM = 1.25hrs|Read paper, wrote notes and README
-|2/14|9:00PM - 10:15PM = 1.25hrs|Wrote script to download datasets
-|2/14|10:15PM - 1:00AM = 2.75hrs|Learned about DNN-HMM models, and began writing one for phoneme conversion
-|2/15|8:30PM - 10:30PM = 2.00hrs|Learned more about HMM models, began writing one by scratch. Able to train. Now I just need to set it up for ASR.
-|**Total**|**5.25**|
+|Day|<div style="width:230px">Hours</div>|Accomplished
+|---|------|---|
+|2/14|7:00PM - 8:15PM = 1.25hrs |Read paper, wrote notes and README
+|2/14|9:00PM - 10:15PM = 1.25hrs |Wrote script to download datasets
+|2/14|10:15PM - 1:00AM = 2.75hrs |Learned about DNN-HMM models, and began writing one for phoneme conversion
+|2/15|8:30PM - 10:30PM = 2.00hrs |To break the problem down further, I learned more about HMM models and began writing one by scratch. I was able to train it, now I just need to set it up for ASR.
+|2/16|11:30AM - 2:30PM = 3.00hrs |Read more about DNN-HMM models (I learned that they are called 'hybrid' or 'chain' models) implemented using the <a href="https://kaldi-asr.org/doc/chain.html#:~:text=The%20%27chain%27%20models%20are%20a%20type%20of%20DNN-HMM,design%20point%20in%20the%20space%20of%20acoustic%20models.">Kaldi</a> toolkit. Because I wanted to fully understand the implementation of DNN-HMM models, I continued working on the model I started 2/14. I was able to find an existing codebase that I could gain intuition from. I wanted to start with something simpler, so I used it for spoken digit recognition. I needed to modify the existing codebase to work with a free dataset I found online.
+|2/16|5:45PM - 9:15PM = 3.50hrs |Finish DNN-HMM code for digit recognition. Training completed, but performance was terrible. Working on sizing the model up, converting to tensors instead of np arrays so that the model can be trained faster and larger on GPU. Model is training, but not increase of performance.
+|**Total**|**13.75**|
 
 Architecture:
 <img src="valle.png" width=700px>
@@ -25,6 +27,7 @@ Architecture:
 This is a link to a DNN-HMM ASR paper: https://ieeexplore.ieee.org/abstract/document/6681449
 Based upon my research, these are also referred to as "Chain" models
 Another helpful link: https://github.com/raminnakhli/HMM-DNN-Speech-Recognition
+Help HMM link: https://www.inf.ed.ac.uk/teaching/courses/asr/2020-21/asr04-hmmgmm.pdf
 
 ### Entire list of all 44 phonemes in the English Language
 <img src="image.png" width=700px>
