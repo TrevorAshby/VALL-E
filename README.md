@@ -15,7 +15,9 @@ Could be worth looking at this link down the road: https://github.com/enhuiz/val
 |2/16|11:30AM - 2:30PM = 3.00hrs |Read more about DNN-HMM models (I learned that they are called 'hybrid' or 'chain' models) implemented using the <a href="https://kaldi-asr.org/doc/chain.html#:~:text=The%20%27chain%27%20models%20are%20a%20type%20of%20DNN-HMM,design%20point%20in%20the%20space%20of%20acoustic%20models.">Kaldi</a> toolkit. Because I wanted to fully understand the implementation of DNN-HMM models, I continued working on the model I started 2/14. I was able to find an existing codebase that I could gain intuition from. I wanted to start with something simpler, so I used it for spoken digit recognition. I needed to modify the existing codebase to work with a free dataset I found online.
 |2/16|5:45PM - 9:15PM = 3.50hrs |Finish DNN-HMM code for digit recognition. Training completed, but performance was terrible. Working on sizing the model up, converting to tensors instead of np arrays so that the model can be trained faster and larger on GPU. Model is training, but not increase of performance.
 |2/17|8:30AM - 2:00PM = 5.50hrs |Read more about MFCCs, and formed hypothesis that using them will drastically increase my performance. Also read more about GMM (Gaussian Mixture Models), so that I could better understand what they were doing, and how they can be used in a GMM-HMM method to predict phonemes. Discovered that a HMM with 3 states is the best size. Implemented MFCCs, and performance doubled, but broke the final portion of the code. Working on fixing that. To better understand my model, and in an attempt to fix the lacking performance and issues, I decided to take a deep dive into GMM models. I discovered the EM-Algorithm, which I chose to learn more about, because I wanted to verify the functions declared in the code (because I was getting some zero division, which I believe was impacting the performance of my model).
-|**Total**|**19.25**|
+|2/17|4:00PM - 6:00PM = 2.00hrs |Read more about GMMs, and verified that the algorithms used were correct, and plotted the distributions of each GMM for the individual digit recognition. Also discovered that the clipping/padding length I had is what was causing my division by 0. Mean centered my cutoff more, and performance increase, and division by 0 disappeared.
+|2/18|2:30PM - 7:45PM = 5.25hrs | Worked on the log likelihood function. Figured out that the way I was padding my data was causing me division by 0, because the difference of two sequences were being checked, and because they were padded the same, they truly were identical sequences, so the variation would be 0. To accomodate for this, I decided to alter my normalized length more in the center of the distribution of my data. Additionally, I discovered that the accuracy calculation was wrong at the end, so I calculated by hand. IT WORKS! I also worked on writing the paper.
+|**Total**|**26.50**|
 
 Architecture:
 <img src="valle.png" width=700px>
@@ -78,9 +80,9 @@ From late night:
 - https://github.com/desh2608/gmm-hmm-asr
 - https://www.quora.com/How-does-GMM-HMM-model-work-in-ASR
 
-## TO DO
+## COMPLETE VALL-E TO DO
 1. ~~Write a script to download the datasets~~
-2. Figure out DNN-HMM ASR model for transcribing, then convert to phonemes
+2. ~~Figure out DNN-HMM ASR model for transcribing, then convert to phonemes~~
 3. install and setup EnCodec
 4. Build Transformer Decoder
 5. Setup NAR and AR configurations for Decoder

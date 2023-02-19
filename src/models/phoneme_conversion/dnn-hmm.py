@@ -17,6 +17,8 @@ import os
 from scipy.io import wavfile
 import librosa
 import matplotlib.pyplot as plt
+import random
+import decimal
 
 # neural network related
 from sklearn.neural_network import MLPClassifier
@@ -61,25 +63,34 @@ def get_data_dict2(datafolder): # ='../../data/archive/recordings_train & _test'
     file_names = os.listdir(datafolder)
 
     data_dict = {}
+    data_list = np.array([])
     for xx, file in enumerate(file_names):
         key = file.split('.')[0]
         mat = wavfile.read(datafolder + '/{}'.format(file))[1].astype(np.float16)
 
-        standardized_len = 7999
-        if len(mat) < standardized_len:
-            mat = np.append(mat, np.array([0.0 for i in range(standardized_len - len(mat))]))
-        else:
-            mat = mat[0:standardized_len]
+        #standardized_len = 8000
+        #if len(mat) < standardized_len:
+        #    mat = np.append(mat, np.array([float(decimal.Decimal(random.randrange(1, 400))/100) for i in range(standardized_len - len(mat))]))
+        #else:
+        #    mat = mat[0:standardized_len]
 
         #miniclip_len = 80
         #data_dict[key] = normalize_numpy_2d(mat.reshape(miniclip_len,int(standardized_len/miniclip_len)))
         
         librosa_mfcc_feature = librosa.feature.mfcc(y=mat.astype(np.float32), sr=8000, n_mfcc=39, n_fft=1024, win_length=int(0.025*8000), hop_length=int(0.01*8000))
+        
+        librosa_mfcc_feature = librosa_mfcc_feature[:,:15]
+        #print(librosa_mfcc_feature.shape)
         data_dict[key] = librosa_mfcc_feature
+        if len(data_list.tolist()) == 0:
+            data_list = librosa_mfcc_feature
+        else:
+            #print(data_list.shape)
+            np.append(data_list, librosa_mfcc_feature, axis=1)
 
         if xx % 700 == 0:
             print("{}/{} files read and converted to mfcc.".format(xx,len(file_names)))
-    return data_dict
+    return data_dict, data_list
 
 
 def logSumExp(x, axis=None, keepdims=False):
@@ -98,7 +109,14 @@ def compute_ll(data, mu, r):
     # mean and variance
     #print(r.shape)
     #print(data.shape)
-    ll = (- 0.5*elog(r) - np.divide(np.square(data - mu), 2*r) -0.5*np.log(2*np.pi)).sum()
+    
+    ll = (- 0.5*elog(r) - np.divide(np.square(data - mu), 2*r) - 0.5*np.log(2*np.pi)).sum()
+    #print("r ", r)
+    #print("their ll: ", ll) # : ~ -500-300
+    
+    # my log ll
+    #ll = ((1/r*np.sqrt(2*np.pi)) * np.exp(-0.5*np.divide(np.square(data-mu), r))).sum()
+    #print("my ll: ", ll) #: ~ -10000-30000
     return ll
 
 def forward(pi, a, o, mu, r):
@@ -466,8 +484,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('train', type=str, help='training data') #../../data/archive/recordings_train/
     parser.add_argument('test', type=str, help='test data') #../../data/archive/recordings_train/
-    parser.add_argument('--niter', type=int, default=2)
-    parser.add_argument('--nstate', type=int, default=5) # modified from 5, read that 3 states is best
+    parser.add_argument('--niter', type=int, default=30)
+    parser.add_argument('--nstate', type=int, default=3) # modified from 5, read that 3 states is best
     parser.add_argument('--nepoch', type=int, default=10) # modified from 10
     parser.add_argument('--lr', type=int, default=0.01)
     parser.add_argument('--mode', type=str, default='mlp',
@@ -495,20 +513,20 @@ if __name__ == '__main__':
     # read training data
     #with open(args.train) as f:
     #    train_data = get_data_dict(f.readlines())
-    train_data = get_data_dict2(args.train)
+    train_data, trd2 = get_data_dict2(args.train)
     #print(train_data)
     
     # for debug
     if args.debug:
-        train_data = {key:train_data[key] for key in list(train_data.keys())[:200]}
+        train_data, trd2 = {key:train_data[key] for key in list(train_data.keys())[:200]}
 
     # read test data
     #with open(args.test) as f:
     #    test_data = get_data_dict(f.readlines())
-    test_data = get_data_dict2(args.test)
+    test_data, ted2 = get_data_dict2(args.test)
     # for debug
     if args.debug:
-        test_data = {key:test_data[key] for key in list(test_data.keys())[:200]}
+        test_data, ted2 = {key:test_data[key] for key in list(test_data.keys())[:200]}
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -516,6 +534,9 @@ if __name__ == '__main__':
     dig_colors = ["r","g","b","yellow","k","c","m","orange","silver","pink"]
 
     print("---- Generating GMM Plots for each Digit ----")
+    min_val = 0
+    max_val = 0
+    pdf_list = []
     for digit in digits:
         sg_model = SingleGauss()
         #print(digit)
@@ -527,40 +548,51 @@ if __name__ == '__main__':
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(111)
 
-        x = np.linspace(-20, 20, 100).reshape(100,1)
+        x = np.linspace(0, 39, 1000).reshape(1000,1)
         logprob = sg_model.loglike_plot(x)
         #print(logprob)
         pdf = np.exp(logprob)
+        pdf_list.append(pdf)
+        pdf_norm = (pdf-np.min(pdf))/(np.max(pdf)-np.min(pdf))
+        
+        if np.min(pdf) < min_val:
+            min_val = np.min(pdf)
+        if np.max(pdf) > max_val:
+            max_val = np.max(pdf)
         #print np.max(pdf) -> 19.8409464401 !?
         #print('x: ', x)
         #print('pdf: ', pdf)
-        ax.plot(x, pdf, '-', color=dig_colors[int(digit)], label=digit)
-        ax2.plot(x, pdf, '-', color=dig_colors[int(digit)], label=digit)
+        # ax.plot(x, pdf_norm, '-', color=dig_colors[int(digit)], label=digit)
+        ax2.plot(x, pdf_norm, '-', color=dig_colors[int(digit)], label=digit)
         ax2.legend(loc="upper left")
         fig2.savefig('./plots/{}.png'.format(digit))
+
+    for digit, pdf in zip(digits, pdf_list):
+        pdf_norm = (pdf-min_val)/(max_val-min_val)
+        ax.plot(x, pdf_norm, '-', color=dig_colors[int(digit)], label=digit)
     ax.legend(loc="upper left")
     fig.savefig('./plots/All_GMM.png')
 
     # Single Gaussian
     sg_model = sg_train(digits, train_data)
 
-    model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
-    #if args.mode == 'hmm':
-    #    try:
-    #        model = pickle.load(open('hmm.pickle','rb'))
-    #    except:
-    #        model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
-    #        pickle.dump(model, open('hmm.pickle','wb'))
-    #elif args.mode == 'mlp':
-    #    try:
-    #        hmm_model = pickle.load(open('hmm.pickle','rb'))
-    #    except:
-    #        hmm_model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
-    #        pickle.dump(hmm_model, open('hmm.pickle','wb'))
-	#TODO: Modify MLP training function call with appropriate arguments here
-    #    model = mlp_train(digits, train_data, hmm_model, uniq_state_dict, nepoch=args.nepoch, lr=args.lr, 
-    #        nunits=(512,512))
-            #nunits=(256, 256))
+    #model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
+    if args.mode == 'hmm':
+       try:
+           model = pickle.load(open('hmm.pickle','rb'))
+       except:
+           model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
+           pickle.dump(model, open('hmm.pickle','wb'))
+    elif args.mode == 'mlp':
+        try:
+            hmm_model = pickle.load(open('hmm.pickle','rb'))
+        except:
+            hmm_model = hmm_train(digits, train_data, sg_model, args.nstate, args.niter)
+            pickle.dump(hmm_model, open('hmm.pickle','wb'))
+	    #TODO: Modify MLP training function call with appropriate arguments here
+        model = mlp_train(digits, train_data, hmm_model, uniq_state_dict, nepoch=args.nepoch, lr=args.lr, 
+        nunits=(512,512))
+        #nunits=(256, 256))
 
     # test
     total_count = 0
@@ -568,8 +600,8 @@ if __name__ == '__main__':
     for key in test_data.keys():
         lls = [] 
         for digit in digits:
-            #ll = model[digit].loglike(test_data[key], digit) # used when doing dnn-hmm
-            ll = model[digit].loglike(test_data[key])
+            ll = model[digit].loglike(test_data[key], digit) # used when doing dnn-hmm
+            #ll = model[digit].loglike(test_data[key])
             lls.append(ll)
         predict = digits[np.argmax(np.array(lls))]
         log_like = np.max(np.array(lls))

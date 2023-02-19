@@ -7,3 +7,4 @@ __pycache__
 /src/data/small.tar
 /src/data/train-clean-100.tar.gz
 /src/data/archive.zip
+/valle-venv/
