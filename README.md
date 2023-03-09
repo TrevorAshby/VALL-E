@@ -80,9 +80,34 @@ From late night:
 - https://github.com/desh2608/gmm-hmm-asr
 - https://www.quora.com/How-does-GMM-HMM-model-work-in-ASR
 
-## COMPLETE VALL-E TO DO
-1. ~~Write a script to download the datasets~~
-2. ~~Figure out DNN-HMM ASR model for transcribing, then convert to phonemes~~
-3. install and setup EnCodec
-4. Build Transformer Decoder
-5. Setup NAR and AR configurations for Decoder
+## Notice
+
+- [EnCodec](https://github.com/facebookresearch/encodec) is licensed under CC-BY-NC 4.0. If you use the code to generate audio quantization or perform decoding, it is important to adhere to the terms of their license.
+
+
+## Citations
+```bibtex
+@article{wang2023neural,
+  title={Neural Codec Language Models are Zero-Shot Text to Speech Synthesizers},
+  author={Wang, Chengyi and Chen, Sanyuan and Wu, Yu and Zhang, Ziqiang and Zhou, Long and Liu, Shujie and Chen, Zhuo and Liu, Yanqing and Wang, Huaming and Li, Jinyu and others},
+  journal={arXiv preprint arXiv:2301.02111},
+  year={2023}
+}
+```
+```bibtex
+@article{defossez2022highfi,
+  title={High Fidelity Neural Audio Compression},
+  author={Défossez, Alexandre and Copet, Jade and Synnaeve, Gabriel and Adi, Yossi},
+  journal={arXiv preprint arXiv:2210.13438},
+  year={2022}
+}
+```
+
+## TODO
+
+- [x] Write a script to download the datasets
+- [x] Figure out DNN-HMM ASR model for transcribing
+- [ ] Convert DNN-HMM to phoneme level
+- [x] install and setup EnCodec
+- [ ] Build Transformer Decoder
+- [ ] Setup NAR and AR configurations for Decoder
